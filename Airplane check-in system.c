@@ -5,8 +5,9 @@
 #define MAX_NAME_LENGTH 50
 #define MAX_DATE_LENGTH 20
 #define MAX_PASSENGERS 100
+#define FILENAME "passenger_data.txt"
 
-// Struct that represent a Passenger
+// represents a Passenger
 struct Passenger {
     char name[MAX_NAME_LENGTH];
     int seatNumber;
@@ -14,21 +15,21 @@ struct Passenger {
     int canceledFlight;
 };
 
-// Global array to store passenger information
+// array to store passenger information
 struct Passenger* passengers[MAX_PASSENGERS];
 int totalPassengers = 0;
 
-// Function to check seat availability
+// check seat availability
 int isSeatAvailable(int seatNumber) {
     for (int i = 0; i < totalPassengers; i++) {
         if (passengers[i]->seatNumber == seatNumber) {
-            return 0; //  not available
+            return 0; 
         }
     }
-    return 1; // available
+    return 1; 
 }
 
-//  check in a passenger
+// check in a passenger
 void checkIn() {
     if (totalPassengers < MAX_PASSENGERS) {
         struct Passenger* newPassenger = (struct Passenger*)malloc(sizeof(struct Passenger));
@@ -41,7 +42,6 @@ void checkIn() {
         printf("Enter passenger name: ");
         scanf("%s", newPassenger->name);
 
-     
         int chosenSeat;
         do {
             printf("Enter seat number (1-50): ");
@@ -56,7 +56,7 @@ void checkIn() {
             else {
                 newPassenger->seatNumber = chosenSeat;
             }
-        } while (chosenSeat < 1,  chosenSeat > 50 , !isSeatAvailable(chosenSeat));
+        } while (chosenSeat < 1 || chosenSeat > 50 || !isSeatAvailable(chosenSeat));
 
         printf("Enter date of flight: ");
         scanf("%s", newPassenger->date);
@@ -123,11 +123,10 @@ void cancelFlight() {
 
 // display seat occupancy
 void displaySeatOccupancy() {
-    int seatOccupancy[50] = { 0 }; 
+    int seatOccupancy[50] = { 0 };
 
     for (int i = 0; i < totalPassengers; i++) {
-
-            seatOccupancy[passengers[i]->seatNumber - 1] = 1; 
+        seatOccupancy[passengers[i]->seatNumber - 1] = 1;
     }
 
     printf("\nSeat Occupancy:\n");
@@ -136,6 +135,84 @@ void displaySeatOccupancy() {
     }
     printf("\n");
 }
+
+// save data to a file
+void saveDataToFile() {
+    FILE* file = fopen(FILENAME, "w");
+    if (file != NULL) {
+        fprintf(file, "%d\n", totalPassengers);
+
+        for (int i = 0; i < totalPassengers; i++) {
+            fprintf(file, "%s %d %s %d\n",
+                passengers[i]->name, passengers[i]->seatNumber,
+                passengers[i]->date, passengers[i]->canceledFlight);
+        }
+
+        fclose(file);
+        printf("Data saved to file.\n");
+    }
+    else {
+        printf("Error opening file for writing.\n");
+    }
+}
+
+// load data from a file
+void loadDataFromFile() {
+    FILE* file = fopen(FILENAME, "r");
+    if (file != NULL) {
+        fscanf(file, "%d", &totalPassengers);
+
+        for (int i = 0; i < totalPassengers; i++) {
+            struct Passenger* loadedPassenger = (struct Passenger*)malloc(sizeof(struct Passenger));
+            if (loadedPassenger != NULL) {
+                fscanf(file, "%s %d %s %d",
+                    loadedPassenger->name, &loadedPassenger->seatNumber,
+                    loadedPassenger->date, &loadedPassenger->canceledFlight);
+
+                passengers[i] = loadedPassenger;
+            }
+            else {
+                printf("Error: Memory allocation failed.\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        fclose(file);
+        printf("Data loaded from file.\n");
+    }
+    else {
+        printf("No previous data found.\n");
+    }
+}
+
+// delete a passenger based on seat number
+void deletePassenger() {
+    int seatToDelete;
+    printf("\nEnter seat number to delete: ");
+    scanf("%d", &seatToDelete);
+
+    int found = 0;
+    for (int i = 0; i < totalPassengers; i++) {
+        if (passengers[i]->seatNumber == seatToDelete) {
+            free(passengers[i]);
+
+            for (int j = i; j < totalPassengers - 1; j++) {
+                passengers[j] = passengers[j + 1];
+            }
+            totalPassengers--;
+
+            printf("Passenger with seat number %d deleted.\n", seatToDelete);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Passenger with seat number %d not found.\n", seatToDelete);
+    }
+}
+
+
 
 // free allocated memory
 void cleanup() {
@@ -146,6 +223,8 @@ void cleanup() {
 
 // Main function
 int main() {
+    loadDataFromFile();
+
     int choice;
 
     do {
@@ -155,7 +234,9 @@ int main() {
         printf("3. Search Passenger by Name\n");
         printf("4. Cancel Flight\n");
         printf("5. Display Seat Occupancy\n");
-        printf("6. Exit\n");
+        printf("6. Save Data to File\n");
+        printf("7. Delete Passenger\n");
+        printf("8. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
 
@@ -176,14 +257,19 @@ int main() {
             displaySeatOccupancy();
             break;
         case 6:
+            saveDataToFile();
+            break;
+        case 7:
+            deletePassenger();
+            break;
+        case 8:
             printf("Exiting the system. Have a great flight!\n");
             break;
         default:
             printf("Invalid choice. Please enter a valid option.\n");
         }
-    } while (choice != 6);
+    } while (choice != 8);
 
- 
     cleanup();
 
     return 0;
